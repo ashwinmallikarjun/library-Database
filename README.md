@@ -1,6 +1,6 @@
 # librarry-Database
 
-# Contains java source files of 'Library Management System' application designed and developed by Ashwin Mallikarjunaswamy.
+# Contains java source files of 'Library Management System' application. Designed and developed by Ashwin Mallikarjunaswamy.
 
 # LMS - Parent Class
 
