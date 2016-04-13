@@ -1,9 +1,12 @@
 import java.sql.ResultSet;
 import java.sql.SQLException;
+import java.text.DateFormat;
 import java.text.ParseException;
 import java.text.SimpleDateFormat;
+import java.util.Date;
 import java.util.HashMap;
 import java.util.InputMismatchException;
+import java.util.Locale;
 import java.util.Scanner;
 
 /*		Implement the following ADMINISTRATOR functions:
@@ -27,6 +30,7 @@ public class Admin extends LMS {
 		
 	public static void adminMethod() throws SQLException{
 		
+		
 		boolean adminNumCheck = true, adminChoiceCheck = true;
 		int adminNumChoice = 0;
 		
@@ -37,13 +41,7 @@ public class Admin extends LMS {
 		tableList.put(5,"Book Loan");
 		
 		System.out.println("\n--------------------------------------------------------------------------------------------------");
-		System.out.println("Choose the operation you would like to perform :"
-				+ "\n1) Add/Update/Delete Book and Author"
-				+ "\n2)	Add/Update/Delete Publishers"
-				+ "\n3)	Add/Update/Delete Library Branches"
-				+ "\n4)	Add/Update/Delete Borrowers"
-				+ "\n5)	Over-ride Due Date for a Book Loan"
-				+ "\n6) Return to previous menu.");
+		System.out.println("\nChoose the operation you would like to perform :\n\n1)	Add/Update/Delete Book and Author\n2)	Add/Update/Delete Publishers\n3)	Add/Update/Delete Library Branches\n4)	Add/Update/Delete Borrowers\n5)	Over-ride Due Date for a Book Loan\n6)	Return to previous menu.");
 		
 		while(adminChoiceCheck){
 			try{
@@ -81,29 +79,25 @@ public class Admin extends LMS {
 
 	public static void adminQuery(int adminNumChoice, String adminOperation) throws SQLException {
 		
-		System.out.println("You have choosen to modify "+adminOperation+" information.");
+		
 		boolean adminOverChoice = true,adminTableChoice = true;
 		int adminOveride = 0,tableOperation = 0;
 		
 		if(adminOperation.equals("Book Loan")){
 			
 			tableList.clear();
+			adminCounter = 0;
 			//Query needs to be written here to over ride due date.*****************************************************
-			System.out.println("Query to over-ride due date!");
+			System.out.println("\n");
 			pstmt = conn.prepareStatement("select * from tbl_book_loans;");
 			adminRS = pstmt.executeQuery();
 			while(adminRS.next()){
 				++adminCounter;
-				System.out.println(adminCounter+")");
-				System.out.println(adminRS.getInt("bookId"));
-				System.out.println(adminRS.getInt("branchId"));
-				System.out.println(adminRS.getInt("cardNo"));
-				System.out.println(adminRS.getDate("dateOut"));
-				System.out.println(adminRS.getDate("dueDate"));
-				System.out.println(adminRS.getDate("dateIn"));
-				System.out.println("----------------------------------------------------------------");
+				System.out.println(adminCounter+" | "+adminRS.getInt("bookId")+" | "+adminRS.getInt("branchId")+" | "+adminRS.getInt("cardNo")+" | "+adminRS.getDate("dateOut")+" | "+adminRS.getDate("dueDate")+" | "+adminRS.getDate("dateIn"));
 				tableList.put(adminCounter, Integer.toString(adminRS.getInt("bookId"))+"|"+Integer.toString(adminRS.getInt("cardNo")));
 			}
+			System.out.println("\nSelect the entry you would like to over-ride : ");
+			
 			while(adminOverChoice){
 				try{
 					adminOveride = adminIO.nextInt();
@@ -127,35 +121,36 @@ public class Admin extends LMS {
 					adminOverChoice = true;
 				}
 			}
-			System.out.println("Enter the new due date in (YYYY-MM-DD) format.");
-						
-			String date = adminIO.next();
-
-			SimpleDateFormat dateFormat = new SimpleDateFormat("dd-MMM-yyyy");
-			java.util.Date newDueDate=null;
-			try {
-			    
-				newDueDate = dateFormat.parse(date);
-			} catch (ParseException e) {
-			    
-			    e.printStackTrace();
+			
+			adminIO.nextLine();
+			DateFormat format = new SimpleDateFormat("yyyy-MM-dd",Locale.US);
+			System.out.println("\nEnter new due date and time in the format yyyy-MM-dd");
+			System.out.println("For example, it is now " + format.format(new Date()));
+			Date date = null;
+			while (date == null) {
+				String line = adminIO.nextLine();
+				try {
+					date = format.parse(line);
+				} catch (ParseException e) {
+					System.out.println("Sorry, that's not valid. Please try again.");
+				}
 			}
 			
 			
 			String integerSplit = tableList.get(adminOveride);
 			String[] bookCard = integerSplit.split("\\|");
-			pstmt = conn.prepareStatement("UPDATE tbl_book_loans SET dueDate = ? where cardNo = ? AND bookId = ?");
-			pstmt.setObject(1, newDueDate);
+			
+			pstmt = conn.prepareStatement("UPDATE tbl_book_loans SET dueDate = ? where cardNo = ? AND bookId = ?;");
+			pstmt.setObject(1, date);
 			pstmt.setInt(2, Integer.parseInt(bookCard[1]));
 			pstmt.setInt(3, Integer.parseInt(bookCard[0]));
 			
-			System.out.println("Due date successfully overridden.");
+			System.out.println("\nDue date successfully overridden.");
 			
 		}
 		else {
 			
 			System.out.println("\n--------------------------------------------------------------------------------------------------");
-			//Query needs to be written here to Add/Update/Delete table information.*************************************
 			System.out.println("Choose the type of operation you would like to perform:"
 					+ "\n1) Add"
 					+ "\n2) Update"
@@ -186,7 +181,6 @@ public class Admin extends LMS {
 				}
 			}
 			
-			//Add methods here
 			switch(tableOperation){
 			
 			case 1: addInfoQuery(adminOperation);
@@ -211,12 +205,9 @@ public class Admin extends LMS {
 	
 	private static void deleteInfoQuery(String adminOperation) throws SQLException {
 		
-		/*DELETE FROM table_name
-		WHERE some_column=some_value;*/
-		
 		switch(adminOperation){
 		
-		case "Book and Author" : 	System.out.println("Delete method for book and author");
+		case "Book and Author" : 	deleteBookAuthor();
 									break;
 									
 		case "Publishers" : 		deletePublisher();
@@ -231,7 +222,7 @@ public class Admin extends LMS {
 		
 		}
 		
-		System.out.println("Information deleted successfully.");
+		System.out.println("\nInformation deleted successfully.");
 		
 		return;
 		
@@ -239,10 +230,70 @@ public class Admin extends LMS {
 	}
 	
 		
+	private static void deleteBookAuthor() throws SQLException {
+		
+		System.out.println("\n--------------------------------------------------------------------------------------------------");
+		adminCounter = 0 ;
+		System.out.println("Which table information would you like to delete ?");
+		System.out.println("1) Book\n2) Author");
+		int userTableChoice = adminIO.nextInt();
+		
+		if(userTableChoice == 1){
+			
+			System.out.println("\n");
+			pstmt = conn.prepareStatement("select * from tbl_book");
+			adminRS = pstmt.executeQuery();
+			tableList.clear();
+			
+			while(adminRS.next()){
+				++adminCounter;
+				System.out.println(adminCounter+" | "
+						+adminRS.getInt("bookId")+" | "
+						+adminRS.getString("title")+" | "
+						+adminRS.getInt("pubId"));
+				tableList.put(adminCounter, Integer.toString(adminRS.getInt("bookId")));
+			}
+			
+			System.out.println("\nChoose the book information that you would like to delete : ");
+			int userRowChoice = adminIO.nextInt();
+			
+			pstmt = conn.prepareStatement("DELETE from tbl_book where bookId = ?");
+			pstmt.setInt(1, Integer.parseInt(tableList.get(userRowChoice)));
+			pstmt.executeUpdate();
+			
+		}
+		else{
+
+			pstmt = conn.prepareStatement("select * from tbl_author");
+			adminRS = pstmt.executeQuery();
+			tableList.clear();
+			
+			while(adminRS.next()){
+				++adminCounter;
+				System.out.println(adminCounter+" | "
+						+adminRS.getInt("authorId")+" | "
+						+adminRS.getString("authorName"));
+				tableList.put(adminCounter, Integer.toString(adminRS.getInt("authorId")));
+			}
+			
+			System.out.println("Choose the author information that you would like to delete : ");
+			int userRowChoice = adminIO.nextInt();
+			
+			pstmt = conn.prepareStatement("DELETE from tbl_author where authorId = ?");
+			pstmt.setInt(1, Integer.parseInt(tableList.get(userRowChoice)));
+			pstmt.executeUpdate();
+		}
+		
+		return;
+		
+	}
+
 	private static void deleteBorrower() throws SQLException {
 		
+		System.out.println("\n--------------------------------------------------------------------------------------------------");
 		tableList.clear();
-				
+		
+		System.out.println("\n");
 		pstmt = conn.prepareStatement("select * from tbl_borrower");
 		adminRS = pstmt.executeQuery();
 		adminCounter = 0;
@@ -258,7 +309,7 @@ public class Admin extends LMS {
 			tableList.put(adminCounter, Integer.toString(adminRS.getInt("cardNo")));
 		}
 		
-		System.out.println("Choose the borrower details you would like to delete :");
+		System.out.println("\nChoose the borrower details you would like to delete :");
 		int userDeleteChoice = adminIO.nextInt();
 		
 		int userBrrChoice = Integer.parseInt(tableList.get(userDeleteChoice));
@@ -271,6 +322,8 @@ public class Admin extends LMS {
 	}
 
 	private static void deleteBranch() throws SQLException {
+		
+		System.out.println("\n--------------------------------------------------------------------------------------------------");
 		tableList.clear();
 		
 		pstmt = conn.prepareStatement("select * from tbl_library_branch");
@@ -301,8 +354,9 @@ public class Admin extends LMS {
 
 	private static void deletePublisher() throws SQLException {
 		
+		System.out.println("\n--------------------------------------------------------------------------------------------------");
 		tableList.clear();
-		
+		System.out.println("\n");
 		pstmt = conn.prepareStatement("select * from tbl_publisher");
 		adminRS = pstmt.executeQuery();
 		adminCounter = 0;
@@ -318,7 +372,7 @@ public class Admin extends LMS {
 			tableList.put(adminCounter, Integer.toString(adminRS.getInt("publisherId")));
 		}
 		
-		System.out.println("Choose the publisher details you would like to delete : ");
+		System.out.println("\nChoose the publisher details you would like to delete : ");
 		int userDeleteChoice = adminIO.nextInt();
 		
 		int userPubChoice = Integer.parseInt(tableList.get(userDeleteChoice));
@@ -339,7 +393,7 @@ public class Admin extends LMS {
 
 		switch(adminOperation){
 		
-		case "Book and Author" : 	System.out.println("Update method for book and author");
+		case "Book and Author" : 	updateBookAuthor();
 									break;
 									
 		case "Publishers" : 		updatePublisher();
@@ -354,7 +408,7 @@ public class Admin extends LMS {
 		
 		}
 		
-		System.out.println("Information updated successfully.");
+		System.out.println("\nInformation updated successfully.");
 		
 		return;
 	
@@ -362,12 +416,105 @@ public class Admin extends LMS {
 		
 	}
 
+	private static void updateBookAuthor() throws SQLException {
+		
+		System.out.println("\n--------------------------------------------------------------------------------------------------");
+		tableList.clear();
+		int userUpdateId = 0;
+		String userUpdateName;
+		
+		System.out.println("Which table information would you like to update ?");
+		System.out.println("1) Book\n2) Author");
+		int userTableChoice = adminIO.nextInt();
+		
+		if(userTableChoice == 1){
+			
+			System.out.println("\n");
+			pstmt = conn.prepareStatement("select * from tbl_book");
+			adminRS = pstmt.executeQuery();
+			adminCounter = 0;
+			
+			while(adminRS.next()){
+				++adminCounter;
+				System.out.println(+adminCounter+" | "
+						+adminRS.getInt("bookId")+" | "
+						+adminRS.getString("title"));
+				
+				tableList.put(adminCounter, Integer.toString(adminRS.getInt("bookId"))+"|"+adminRS.getString("title"));
+			}
+			
+			System.out.println("\n");
+			System.out.println("Choose the book details you would like to update :");
+			int userUpdateChoice = adminIO.nextInt();
+			
+			String detailsToSplit = tableList.get(userUpdateChoice);
+			String[] splitDetails = detailsToSplit.split("\\|");
+			userUpdateId = Integer.parseInt(splitDetails[0]);
+			userUpdateName = splitDetails[1];
+						
+			System.out.println("\nEnter new title or N/A if do like to make any change :");
+			String updateBookName = adminIO.next();
+			
+			if(updateBookName.equalsIgnoreCase("N/A")){
+				updateBookName = userUpdateName;
+			}
+			
+			
+			pstmt = conn.prepareStatement("UPDATE tbl_book SET title=? WHERE bookId = ?");
+			pstmt.setString(1, updateBookName);
+			pstmt.setInt(2, userUpdateId);
+			pstmt.executeUpdate();
+			
+			}
+		else {
+			System.out.println("\n");
+			pstmt = conn.prepareStatement("select * from tbl_author");
+			adminRS = pstmt.executeQuery();
+			adminCounter = 0;
+			
+			while(adminRS.next()){
+				++adminCounter;
+				System.out.println(+adminCounter+" | "
+						+adminRS.getInt("authorId")+" | "
+						+adminRS.getString("authorName"));
+				
+				tableList.put(adminCounter, Integer.toString(adminRS.getInt("authorId"))+"|"+adminRS.getString("authorName"));
+			}
+			
+			System.out.println("Choose the author details you would like to update :");
+			int userUpdateChoice = adminIO.nextInt();
+			
+			String detailsToSplit = tableList.get(userUpdateChoice);
+			String[] splitDetails = detailsToSplit.split("\\|");
+			userUpdateId = Integer.parseInt(splitDetails[0]);
+			userUpdateName = splitDetails[1];
+						
+			System.out.println("Enter new author name or N/A if do like to make any change :");
+			String updateAuthorName = adminIO.next();
+			
+			if(updateAuthorName.equalsIgnoreCase("N/A")){
+				updateAuthorName = userUpdateName;
+			}
+			
+			
+			pstmt = conn.prepareStatement("UPDATE tbl_book SET title=? WHERE bookId = ?");
+			pstmt.setString(1, updateAuthorName);
+			pstmt.setInt(2, userUpdateId);
+			pstmt.executeUpdate();
+						
+		}
+		
+		return;
+		
+	}
+
 	private static void updateBorrower() throws SQLException {
 		
+		System.out.println("\n--------------------------------------------------------------------------------------------------");
 		tableList.clear();
 		int userUpdateId = 0;
 		String userUpdateName,userUpdateAddress,userUpdatePhone;
-		
+		System.out.println("\n");
 		pstmt = conn.prepareStatement("select * from tbl_borrower");
 		adminRS = pstmt.executeQuery();
 		adminCounter = 0;
@@ -383,7 +530,7 @@ public class Admin extends LMS {
 			tableList.put(adminCounter, Integer.toString(adminRS.getInt("cardNo"))+"|"+adminRS.getString("name")+"|"+adminRS.getString("address")+"|"+adminRS.getString("phone"));
 		}
 		
-		System.out.println("Choose the borrower details you would like to update :");
+		System.out.println("\nChoose the borrower details you would like to update :");
 		int userUpdateChoice = adminIO.nextInt();
 		
 		String detailsToSplit = tableList.get(userUpdateChoice);
@@ -393,28 +540,28 @@ public class Admin extends LMS {
 		userUpdateAddress = splitDetails[2];
 		userUpdatePhone = splitDetails[3];
 		
-		
-		System.out.println("Enter new borrower name or N/A if do like to make any change :");
-		String updatebrrName = adminIO.next();
+		adminIO.nextLine();
+		System.out.println("\nEnter new borrower name or N/A if do like to make any change :");
+		String updatebrrName = adminIO.nextLine();
 		
 		if(updatebrrName.equalsIgnoreCase("N/A")){
 			updatebrrName = userUpdateName;
 		}
 		
-		System.out.println("Enter new borrower address or N/A if do like to make any change :");
-		String updatebrrAddress = adminIO.next();
+		System.out.println("\nEnter new borrower address or N/A if do like to make any change :");
+		String updatebrrAddress = adminIO.nextLine();
 		
 		if(updatebrrAddress.equalsIgnoreCase("N/A")){
 			updatebrrAddress = userUpdateAddress;
 		}
-		System.out.println("Enter new publisher phone or N/A if do like to make any change :");
+		System.out.println("\nEnter new publisher phone or N/A if do like to make any change :");
 		String updatebrrPhone = adminIO.next();
 		
 		if(updatebrrPhone.equalsIgnoreCase("N/A")){
 			updatebrrPhone = userUpdatePhone;
 		}
 		
-		pstmt = conn.prepareStatement("UPDATE tbl_publisher SET name=?,address=?,phone=? WHERE cardNo = ?");
+		pstmt = conn.prepareStatement("UPDATE tbl_borrower SET name=?,address=?,phone=? WHERE cardNo = ?");
 		pstmt.setString(1, updatebrrName);
 		pstmt.setString(2, updatebrrAddress);
 		pstmt.setString(3, updatebrrPhone);
@@ -427,10 +574,11 @@ public class Admin extends LMS {
 
 	private static void updateLibraryBranch() throws SQLException {
 		
+		System.out.println("\n--------------------------------------------------------------------------------------------------");
 		tableList.clear();
 		int userUpdateId = 0;
 		String userUpdateName,userUpdateAddress;
-		
+		System.out.println("\n");
 		pstmt = conn.prepareStatement("select * from tbl_library_branch");
 		adminRS = pstmt.executeQuery();
 		adminCounter = 0;
@@ -444,7 +592,7 @@ public class Admin extends LMS {
 			tableList.put(adminCounter, Integer.toString(adminRS.getInt("branchId"))+"|"+adminRS.getString("branchName")+"|"+adminRS.getString("branchAddress"));
 		}
 		
-		System.out.println("Choose the library branch details you would like to update :");
+		System.out.println("\nChoose the library branch details you would like to update :");
 		int userUpdateChoice = adminIO.nextInt();
 		
 		String detailsToSplit = tableList.get(userUpdateChoice);
@@ -453,14 +601,14 @@ public class Admin extends LMS {
 		userUpdateName = splitDetails[1];
 		userUpdateAddress = splitDetails[2];
 		
-		System.out.println("Enter new library branch name or N/A if do like to make any change :");
+		System.out.println("\nEnter new library branch name or N/A if do like to make any change :");
 		String updateLibName = adminIO.next();
 		
 		if(updateLibName.equalsIgnoreCase("N/A")){
 			updateLibName = userUpdateName;
 		}
 		
-		System.out.println("Enter new library branch address or N/A if do like to make any change :");
+		System.out.println("\nEnter new library branch address or N/A if do like to make any change :");
 		String updateLibAddress = adminIO.next();
 		
 		if(updateLibAddress.equalsIgnoreCase("N/A")){
@@ -480,10 +628,11 @@ public class Admin extends LMS {
 
 	private static void updatePublisher() throws SQLException {
 		
+		System.out.println("\n--------------------------------------------------------------------------------------------------");
 		tableList.clear();
 		int userUpdateId = 0;
 		String userUpdateName,userUpdateAddress,userUpdatePhone;
-		
+		System.out.println("\n");
 		pstmt = conn.prepareStatement("select * from tbl_publisher");
 		adminRS = pstmt.executeQuery();
 		adminCounter = 0;
@@ -499,7 +648,7 @@ public class Admin extends LMS {
 			tableList.put(adminCounter, Integer.toString(adminRS.getInt("publisherId"))+"|"+adminRS.getString("publisherName")+"|"+adminRS.getString("publisherAddress")+"|"+adminRS.getString("publisherPhone"));
 		}
 		
-		System.out.println("Choose the publisher details you would like to update :");
+		System.out.println("\nChoose the publisher details you would like to update :");
 		int userUpdateChoice = adminIO.nextInt();
 		
 		String detailsToSplit = tableList.get(userUpdateChoice);
@@ -509,21 +658,22 @@ public class Admin extends LMS {
 		userUpdateAddress = splitDetails[2];
 		userUpdatePhone = splitDetails[3];
 		
-		
-		System.out.println("Enter new publisher name or N/A if do like to make any change :");
-		String updatePubName = adminIO.next();
-		
+		adminIO.nextLine();
+		System.out.println("\nEnter new publisher name or N/A if do like to make any change :");
+		String updatePubName = adminIO.nextLine();
+				
 		if(updatePubName.equalsIgnoreCase("N/A")){
 			updatePubName = userUpdateName;
 		}
 		
-		System.out.println("Enter new publisher address or N/A if do like to make any change :");
-		String updatePubAddress = adminIO.next();
-		
+		System.out.println("\nEnter new publisher address or N/A if do like to make any change :");
+		String updatePubAddress = adminIO.nextLine();
+				
 		if(updatePubAddress.equalsIgnoreCase("N/A")){
 			updatePubAddress = userUpdateAddress;
 		}
-		System.out.println("Enter new publisher phone or N/A if do like to make any change :");
+		
+		System.out.println("\nEnter new publisher phone or N/A if do like to make any change :");
 		String updatePubPhone = adminIO.next();
 		
 		if(updatePubPhone.equalsIgnoreCase("N/A")){
@@ -549,62 +699,274 @@ public class Admin extends LMS {
 		
 		switch(adminOperation){
 		
-		case "Book and Author" : 	System.out.println("Add method for book and author");
+		case "Book and Author" : 	addBookAuthor();
 									break;
 									
-		case "Publishers" : 		System.out.println("Enter publisher name : ");
-									String userPubName = adminIO.next();
-									System.out.println("Enter publisher address : ");
-									String userPubAddress = adminIO.next();
-									System.out.println("Enter publisher phone : ");
-									String userPubPhone = adminIO.next();
-									
-									pstmt = conn.prepareStatement("INSERT INTO ? (publisherName,publisherAddress,publisherPhone) VALUES (?,?,?);");
-									pstmt.setString(1, "tbl_publisher");
-									pstmt.setString(2, userPubName);
-									pstmt.setString(3, userPubAddress);
-									pstmt.setString(4, userPubPhone);
-									pstmt.executeUpdate();
-									
+		case "Publishers" : 		addPublisher();
 									break;
 		                         
-		case "Library Branches" : 	System.out.println("Enter library branch name : ");
-									String userLibName = adminIO.next();
-									System.out.println("Enter library branch address : ");
-									String userLibAddress = adminIO.next();
-																		
-									pstmt = conn.prepareStatement("INSERT INTO ? (branchName,branchAddress) VALUES (?,?);");
-									pstmt.setString(1, "tbl_library_branch");
-									pstmt.setString(2, userLibName);
-									pstmt.setString(3, userLibAddress);
-									pstmt.executeUpdate();
-									
+		case "Library Branches" : 	addLibBranch();
         							break;
         						
-		case "Borrowers" : 			System.out.println("Enter borrower name : ");
-									String userBrrName = adminIO.next();
-									System.out.println("Enter borrower address : ");
-									String userBrrAddress = adminIO.next();
-									System.out.println("Enter borrower phone :");
-									String userBrrPhone = adminIO.next();
-									
-									pstmt = conn.prepareStatement("INSERT INTO ? (name,address,phone) VALUES (?,?,?);");
-									pstmt.setString(1, "tbl_borrower");
-									pstmt.setString(2, userBrrName);
-									pstmt.setString(3, userBrrAddress);
-									pstmt.setString(4, userBrrPhone);
-									pstmt.executeUpdate();
-									
+		case "Borrowers" : 			addBorrower();									
 									break;
-		
-		
+				
 		}
 		
-		System.out.println("Information added successfully.");
+		System.out.println("\nInformation added successfully.");
 		
 		return;
 		
 		
+	}
+
+	private static void addBorrower() throws SQLException {
+		
+		System.out.println("\n--------------------------------------------------------------------------------------------------");
+		adminIO.nextLine();
+		System.out.println("\nEnter borrower name : ");
+		String userBrrName = adminIO.nextLine();
+		System.out.println("\nEnter borrower address : ");
+		String userBrrAddress = adminIO.nextLine();
+		System.out.println("\nEnter borrower phone :");
+		String userBrrPhone = adminIO.nextLine();
+		
+		pstmt = conn.prepareStatement("INSERT INTO tbl_borrower (name,address,phone) VALUES (?,?,?);");
+		pstmt.setString(1, userBrrName);
+		pstmt.setString(2, userBrrAddress);
+		pstmt.setString(3, userBrrPhone);
+		pstmt.executeUpdate();
+		
+		return;
+	}
+
+	private static void addLibBranch() throws SQLException {
+		
+		adminIO.nextLine();
+		System.out.println("\n--------------------------------------------------------------------------------------------------");
+		System.out.println("\nEnter library branch name : ");
+		String userLibName = adminIO.nextLine();
+		System.out.println("\nEnter library branch address : ");
+		String userLibAddress = adminIO.nextLine();
+											
+		pstmt = conn.prepareStatement("INSERT INTO tbl_library_branch (branchName,branchAddress) VALUES (?,?);");
+		pstmt.setString(1, userLibName);
+		pstmt.setString(2, userLibAddress);
+		pstmt.executeUpdate();
+		
+		return;
+	}
+
+	private static void addPublisher() throws SQLException {
+		
+		System.out.println("\n--------------------------------------------------------------------------------------------------");
+		adminIO.nextLine();
+		System.out.println("Enter publisher name : ");
+		String userPubName = adminIO.nextLine();
+		System.out.println("Enter publisher address : ");
+		String userPubAddress = adminIO.nextLine();
+		System.out.println("Enter publisher phone : ");
+		String userPubPhone = adminIO.nextLine();
+		
+		pstmt = conn.prepareStatement("INSERT INTO tbl_publisher (publisherName,publisherAddress,publisherPhone) VALUES (?,?,?);");
+		pstmt.setString(1, userPubName);
+		pstmt.setString(2, userPubAddress);
+		pstmt.setString(3, userPubPhone);
+		pstmt.executeUpdate();
+		
+		return;
+	}
+
+	private static void addBookAuthor() throws SQLException {
+		
+		System.out.println("\n--------------------------------------------------------------------------------------------------");
+		System.out.println("Which table information would you like to add?");
+		System.out.println("1) Book\n2) Author");
+		int userTableChoice = adminIO.nextInt();
+		
+		if(userTableChoice == 1){
+			//Add to book table
+			System.out.println("\n");
+			adminIO.nextLine();
+			pstmt = conn.prepareStatement("select * from tbl_book");
+			adminRS = pstmt.executeQuery();
+						
+			while(adminRS.next()){
+				System.out.println(adminRS.getString("title"));
+						
+			}
+			System.out.println("\nEnter book title : ");
+			String userBookName = adminIO.nextLine();
+			
+			//Selecting a author.-----------------------------------------------------------------------------------
+			System.out.println("\n");
+			pstmt = conn.prepareStatement("select * from tbl_author");
+			adminRS = pstmt.executeQuery();
+			tableList.clear();
+			adminCounter = 0;
+			
+			while(adminRS.next()){
+				++adminCounter;
+				System.out.println(adminCounter+" | "+adminRS.getString("authorName"));
+				tableList.put(adminCounter, adminRS.getString("authorName"));
+				
+			}
+			
+			System.out.println("\nSelect author or enter NEW to add a new author : ");
+			String userBookAuth = adminIO.next();
+			String userBookAuthName;
+			if(userBookAuth.equalsIgnoreCase("NEW")){
+				adminIO.nextLine();
+				System.out.println("\nEnter author name : ");
+				userBookAuthName = adminIO.nextLine();
+								
+				pstmt = conn.prepareStatement("insert into tbl_author (authorName) values (?);");
+				pstmt.setString(1, userBookAuthName);
+				pstmt.executeUpdate();
+				
+			}
+			else{
+				int userBookAuthChoice = Integer.parseInt(userBookAuth);
+				userBookAuthName = tableList.get(userBookAuthChoice);
+			}
+															
+			//Selecting a publisher.----------------------------------------------------------------------------
+			System.out.println("\n");
+			pstmt = conn.prepareStatement("select * from tbl_publisher");
+			adminRS = pstmt.executeQuery();
+			tableList.clear();
+			adminCounter = 0;
+			
+			while(adminRS.next()){
+				++adminCounter;
+				System.out.println(adminCounter+" | "+adminRS.getString("publisherName"));
+				tableList.put(adminCounter, adminRS.getString("publisherName"));
+				
+			}
+						
+			System.out.println("\nSelect publisher or enter NEW to add a new publisher : ");
+			String userBookPub = adminIO.next();
+			String userPubName;
+			if(userBookPub.equalsIgnoreCase("NEW")){
+				adminIO.nextLine();
+				System.out.println("\nEnter publisher name : ");
+				userPubName = adminIO.nextLine();
+				System.out.println("\nEnter publisher address : ");
+				String userPubAddress = adminIO.next();
+				adminIO.nextLine();
+				System.out.println("\nEnter publisher phone : ");
+				String userPubPhone = adminIO.next();
+				
+				System.out.println("\n");
+				pstmt = conn.prepareStatement("INSERT INTO tbl_publisher (publisherName,publisherAddress,publisherPhone) VALUES (?,?,?);");
+				pstmt.setString(1, userPubName);
+				pstmt.setString(2, userPubAddress);
+				pstmt.setString(3, userPubPhone);
+				pstmt.executeUpdate();				
+			}
+			else{
+				int userBookPubChoice = Integer.parseInt(userBookPub);
+				userPubName = tableList.get(userBookPubChoice);
+			}
+			
+			//Selecting genre.---------------------------------------------------------------------------------
+			pstmt = conn.prepareStatement("select * from tbl_genre");
+			adminRS = pstmt.executeQuery();
+			tableList.clear();
+			adminCounter = 0;
+			
+			while(adminRS.next()){
+				++adminCounter;
+				System.out.println(adminCounter+" | "+adminRS.getString("genre_name"));
+				tableList.put(adminCounter, adminRS.getString("genre_name"));
+				
+			}
+						
+			System.out.println("\nSelect genre or enter NEW to add a new publisher : ");
+			String userBookGenre = adminIO.next();
+			
+			if(userBookGenre.equalsIgnoreCase("NEW")){
+				adminIO.nextLine();
+				System.out.println("Enter genre name : ");
+				String userBookGenreName = adminIO.nextLine();
+							
+				pstmt = conn.prepareStatement("INSERT INTO tbl_genre (genre_name) VALUES (?);");
+				pstmt.setString(1, userBookGenreName);
+				pstmt.executeUpdate();				
+			}
+			else{
+				int userBookGenreChoice = Integer.parseInt(userBookGenre);
+				String userBookGenreName = tableList.get(userBookGenreChoice);
+			}
+			
+			//Linking all above data to each other.--------------------------------------------------------------------------------
+			
+			int userBookNameId = 0,userBookAuthId =0,userBookPubId =0,userBookGenreId = 0;
+			
+			//Fetching publisherId
+			pstmt = conn.prepareStatement("select publisherId from tbl_publisher where publisherName = ?;");
+			pstmt.setString(1, userPubName);
+			adminRS = pstmt.executeQuery();
+			while(adminRS.next()){
+				userBookPubId = adminRS.getInt("publisherId");
+			}
+			
+			//Inserting tbl_book
+			pstmt = conn.prepareStatement("INSERT INTO tbl_book (title) VALUES (?)");
+			pstmt.setString(1, userBookName);
+			pstmt.executeUpdate();
+			
+			//Fetching bookId
+			pstmt = conn.prepareStatement("select bookId from tbl_book where title = ?;");
+			pstmt.setString(1, userBookName);
+			adminRS = pstmt.executeQuery();
+			while(adminRS.next()){
+				userBookNameId = adminRS.getInt("bookId");
+			}
+			
+			//Fetching authorId
+			pstmt = conn.prepareStatement("select authorId from tbl_author where authorName = ?;");
+			pstmt.setString(1, userBookAuthName);
+			adminRS = pstmt.executeQuery();
+			while(adminRS.next()){
+				userBookAuthId = adminRS.getInt("authorId");
+			}
+			
+						
+			//Fetching genre_id
+			pstmt = conn.prepareStatement("select genre_id from tbl_genre where genre_name = ?;");
+			pstmt.setString(1, userBookGenre);
+			adminRS = pstmt.executeQuery();
+			while(adminRS.next()){
+				userBookGenreId = adminRS.getInt("genre_id");
+			}
+			
+/*			//Inserting tbl_book_authors
+			pstmt = conn.prepareStatement("INSERT INTO tbl_book_authors (bookId,authorId) VALUES (?,?);");
+			pstmt.setInt(1, userBookNameId);
+			pstmt.setInt(2, userBookAuthId);
+			pstmt.executeUpdate();
+			
+			//Inserting tbl_gener
+			pstmt = conn.prepareStatement("INSERT INTO tbl_book_genres (genre_id,bookId) VALUES (?,?);");
+			pstmt.setInt(1, userBookGenreId);
+			pstmt.setInt(2, userBookAuthId);
+			pstmt.executeUpdate();*/
+						
+		}
+		else{
+			//Add to author table
+			System.out.println("Enter author name : ");
+			String userAuthorName = adminIO.next();
+												
+			pstmt = conn.prepareStatement("INSERT INTO ? (title) VALUES (?);");
+			pstmt.setString(1, "tbl_author");
+			pstmt.setString(2, userAuthorName);
+			pstmt.executeUpdate();
+						
+		}
+		
+		return;
 	}
 	
 }
