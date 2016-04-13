@@ -10,4 +10,4 @@
 
 # Admin.java - Contains functionalities of a admin.
 
-# Author  - Ashwin Mallikarjunaswamy.
+# Author - Ashwin Mallikarjunaswamy.
