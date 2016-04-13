@@ -2,10 +2,10 @@
 
 # Contains java source files of 'Library Management System' application. Designed and developed by Ashwin Mallikarjunaswamy.
 
-# LMS - Parent Class
+# LMS.java - Parent Class
 
-# Librarian - Contains functionalities of a librarian.
+# Librarian.java - Contains functionalities of a librarian.
 
-# Borrower - Contains functionalities of a borrower.
+# Borrower.java - Contains functionalities of a borrower.
 
-# Admin - Contains functionalities of a admin.
+# Admin.java - Contains functionalities of a admin.
