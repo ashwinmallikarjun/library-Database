@@ -9,17 +9,6 @@ import java.util.InputMismatchException;
 import java.util.Locale;
 import java.util.Scanner;
 
-/*		Implement the following ADMINISTRATOR functions:
-
-			1)	Add/Update/Delete Book and Author
-			2)	Add/Update/Delete Publishers
-			3)	Add/Update/Delete Library Branches
-			4)	Add/Update/Delete Borrowers
-			5)	Over-ride Due Date for a Book Loan
-			
-*/
-
-
 public class Admin extends LMS {
 
 	static Scanner adminIO = new Scanner(System.in);
@@ -870,6 +859,7 @@ public class Admin extends LMS {
 			}
 			
 			//Selecting genre.---------------------------------------------------------------------------------
+			System.out.println("\n");
 			pstmt = conn.prepareStatement("select * from tbl_genre");
 			adminRS = pstmt.executeQuery();
 			tableList.clear();
@@ -884,11 +874,11 @@ public class Admin extends LMS {
 						
 			System.out.println("\nSelect genre or enter NEW to add a new publisher : ");
 			String userBookGenre = adminIO.next();
-			
+			String userBookGenreName;
 			if(userBookGenre.equalsIgnoreCase("NEW")){
 				adminIO.nextLine();
 				System.out.println("Enter genre name : ");
-				String userBookGenreName = adminIO.nextLine();
+				userBookGenreName = adminIO.nextLine();
 							
 				pstmt = conn.prepareStatement("INSERT INTO tbl_genre (genre_name) VALUES (?);");
 				pstmt.setString(1, userBookGenreName);
@@ -896,7 +886,7 @@ public class Admin extends LMS {
 			}
 			else{
 				int userBookGenreChoice = Integer.parseInt(userBookGenre);
-				String userBookGenreName = tableList.get(userBookGenreChoice);
+				userBookGenreName = tableList.get(userBookGenreChoice);
 			}
 			
 			//Linking all above data to each other.--------------------------------------------------------------------------------
@@ -912,8 +902,9 @@ public class Admin extends LMS {
 			}
 			
 			//Inserting tbl_book
-			pstmt = conn.prepareStatement("INSERT INTO tbl_book (title) VALUES (?)");
+			pstmt = conn.prepareStatement("INSERT INTO tbl_book (title,pubId) VALUES (?,?)");
 			pstmt.setString(1, userBookName);
+			pstmt.setInt(2, userBookPubId);
 			pstmt.executeUpdate();
 			
 			//Fetching bookId
@@ -935,23 +926,23 @@ public class Admin extends LMS {
 						
 			//Fetching genre_id
 			pstmt = conn.prepareStatement("select genre_id from tbl_genre where genre_name = ?;");
-			pstmt.setString(1, userBookGenre);
+			pstmt.setString(1, userBookGenreName);
 			adminRS = pstmt.executeQuery();
 			while(adminRS.next()){
 				userBookGenreId = adminRS.getInt("genre_id");
 			}
 			
-/*			//Inserting tbl_book_authors
+			//Inserting tbl_book_authors
 			pstmt = conn.prepareStatement("INSERT INTO tbl_book_authors (bookId,authorId) VALUES (?,?);");
 			pstmt.setInt(1, userBookNameId);
 			pstmt.setInt(2, userBookAuthId);
 			pstmt.executeUpdate();
 			
-			//Inserting tbl_gener
+			//Inserting tbl_book_gener
 			pstmt = conn.prepareStatement("INSERT INTO tbl_book_genres (genre_id,bookId) VALUES (?,?);");
 			pstmt.setInt(1, userBookGenreId);
-			pstmt.setInt(2, userBookAuthId);
-			pstmt.executeUpdate();*/
+			pstmt.setInt(2, userBookNameId);
+			pstmt.executeUpdate();
 						
 		}
 		else{
