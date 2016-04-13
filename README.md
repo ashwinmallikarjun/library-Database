@@ -1,4 +1,4 @@
-# librarry-Database
+# library-database
 
 # Contains java source files of 'Library Management System' application. Designed and developed by Ashwin Mallikarjunaswamy.
 
